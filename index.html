@@ -13,6 +13,8 @@
   .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
   .toast { position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: #1f2937; color: white; padding: 8px 16px; border-radius: 8px; animation: fadeIn 0.3s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -25,7 +27,7 @@
       <option value="">-- Choose your name --</option>
     </select>
     <input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 border rounded mb-3">
-    <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white p-3 rounded font-semibold">Sign In</button>
+    <button id="loginBtn" onclick="handleLogin()" class="w-full bg-indigo-600 text-white p-3 rounded font-semibold">Sign In</button>
     <p id="loginError" class="text-red-500 text-sm text-center hidden mt-2"></p>
   </div>
 </div>
@@ -43,7 +45,6 @@
 
   <!-- Admin Dashboard -->
   <div id="adminDashboard" class="hidden max-w-7xl mx-auto px-4 py-6">
-    <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white rounded-xl p-4 shadow"><div class="text-2xl font-bold text-indigo-600" id="statMembers">0</div><div class="text-sm">Members</div></div>
       <div class="bg-white rounded-xl p-4 shadow"><div class="text-2xl font-bold text-blue-600" id="statActive">0</div><div class="text-sm">Active Contacts</div></div>
@@ -52,7 +53,6 @@
       <div class="bg-white rounded-xl p-4 shadow"><div class="text-2xl font-bold text-orange-600" id="statPending">0</div><div class="text-sm">Pending</div></div>
     </div>
 
-    <!-- Tabs -->
     <div class="bg-white rounded-xl shadow-sm">
       <div class="flex border-b">
         <button onclick="switchTab('members')" id="tabMembers" class="px-4 py-2 text-indigo-600 border-b-2 border-indigo-600">👥 Members</button>
@@ -61,21 +61,18 @@
         <button onclick="switchTab('reports')" id="tabReports" class="px-4 py-2 text-gray-500">📊 Reports</button>
       </div>
 
-      <!-- Members Tab -->
       <div id="membersTab" class="p-4">
         <button onclick="openAddMemberModal()" class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">+ Add Member</button>
         <div id="membersList"></div>
       </div>
 
-      <!-- Upload Tab -->
       <div id="uploadTab" class="hidden p-4">
         <div class="max-w-2xl">
           <div class="bg-blue-50 p-4 rounded mb-4">
             <p class="text-sm">CSV format: <strong>Name, Phone, Email</strong> (Email optional)</p>
           </div>
           <input type="file" id="csvFileInput" accept=".csv" class="mb-4">
-          <button onclick="uploadContacts()" class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">Upload & Distribute</button>
-          
+          <button id="uploadBtn" onclick="uploadContacts()" class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">Upload & Distribute</button>
           <div class="border-t pt-4">
             <h4 class="font-semibold mb-2">Data Management</h4>
             <div class="flex flex-wrap gap-3">
@@ -87,7 +84,6 @@
         </div>
       </div>
 
-      <!-- Archive Tab -->
       <div id="archiveTab" class="hidden p-4">
         <div class="flex gap-3 mb-4">
           <button onclick="downloadArchive()" class="bg-green-600 text-white px-4 py-2 rounded">📥 Download Archive (Excel)</button>
@@ -102,7 +98,6 @@
         <div id="noArchiveMsg" class="hidden text-center py-8 text-gray-400">Archive is empty</div>
       </div>
 
-      <!-- Reports Tab -->
       <div id="reportsTab" class="hidden p-4">
         <button onclick="downloadFullReport()" class="bg-green-600 text-white px-6 py-3 rounded text-lg">📥 Download Full Report (Excel)</button>
       </div>
@@ -116,12 +111,10 @@
       <div class="bg-white p-4 rounded shadow"><div class="text-2xl font-bold text-green-600" id="memberCompleted">0</div><div class="text-sm">Completed</div></div>
       <div class="bg-white p-4 rounded shadow"><div class="text-2xl font-bold text-orange-600" id="memberPending">0</div><div class="text-sm">Pending</div></div>
     </div>
-    
     <div class="bg-white rounded-xl p-4 shadow mb-6">
       <div class="flex justify-between text-sm mb-2"><span>Your Progress</span><span id="progressPercent" class="font-bold text-indigo-600">0%</span></div>
       <div class="w-full bg-gray-200 rounded-full h-3"><div class="bg-indigo-500 h-3 rounded-full transition-all" id="progressBar" style="width:0%"></div></div>
     </div>
-
     <div class="bg-white rounded-xl shadow">
       <div class="p-4 border-b flex justify-between items-center">
         <h3 class="font-semibold">📞 Your Contacts</h3>
@@ -160,38 +153,94 @@
     </select>
     <textarea id="callNotes" rows="3" placeholder="Notes..." class="w-full p-2 border rounded mb-4"></textarea>
     <input type="hidden" id="fbContactId">
-    <div class="flex gap-2"><button onclick="closeFeedbackModal()" class="flex-1 bg-gray-200 py-2 rounded">Cancel</button><button onclick="saveFeedback()" class="flex-1 bg-indigo-600 text-white py-2 rounded">Save</button></div>
+    <div class="flex gap-2"><button onclick="closeFeedbackModal()" class="flex-1 bg-gray-200 py-2 rounded">Cancel</button><button id="saveFeedbackBtn" onclick="saveFeedback()" class="flex-1 bg-indigo-600 text-white py-2 rounded">Save</button></div>
   </div>
 </div>
 
 <div id="toast" class="toast hidden"></div>
 
 <script>
-// Supabase
+// ─── Supabase ─────────────────────────────────────────────────────────────────
 const supabaseUrl = 'https://igugnnoqfelotyhawtat.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8';
 const db = supabase.createClient(supabaseUrl, supabaseKey);
 
 let currentUser = null;
-let pendingUpload = [];
 
+// ─── Simple In-Memory Cache ───────────────────────────────────────────────────
+// Each entry: { data, ts }  — stale after CACHE_TTL ms
+const CACHE_TTL = 30_000; // 30 s
+const _cache = {};
+
+function cacheSet(key, data) { _cache[key] = { data, ts: Date.now() }; }
+function cacheGet(key) {
+  const e = _cache[key];
+  if (e && Date.now() - e.ts < CACHE_TTL) return e.data;
+  return null;
+}
+function cacheInvalidate(...keys) { keys.forEach(k => delete _cache[k]); }
+
+// ─── Batched Data Fetch ───────────────────────────────────────────────────────
+// Fetch users + contacts (+ optionally archive) in parallel, with caching.
+async function fetchAll({ withArchive = false } = {}) {
+  const usersHit   = cacheGet('users');
+  const contactsHit = cacheGet('contacts');
+  const archiveHit  = withArchive ? cacheGet('archive') : null;
+
+  const fetches = [
+    usersHit    ? Promise.resolve(usersHit)   : db.from('users').select('*'),
+    contactsHit ? Promise.resolve(contactsHit) : db.from('contacts').select('*'),
+    (withArchive && !archiveHit)
+      ? db.from('contacts_archive').select('*').order('completed_at', { ascending: false })
+      : Promise.resolve(archiveHit || []),
+  ];
+
+  const [uRes, cRes, aRes] = await Promise.all(fetches);
+
+  const users    = usersHit    ? uRes : (uRes.data || []);
+  const contacts = contactsHit ? cRes : (cRes.data || []);
+  const archive  = (withArchive && !archiveHit) ? (aRes.data || []) : (aRes || []);
+
+  if (!usersHit)    cacheSet('users', users);
+  if (!contactsHit) cacheSet('contacts', contacts);
+  if (withArchive && !archiveHit) cacheSet('archive', archive);
+
+  return { users, contacts, archive };
+}
+
+// Convenience wrappers (use cache when possible)
+async function getUsers()    { return (await fetchAll()).users; }
+async function getContacts() { return (await fetchAll()).contacts; }
+async function getArchive()  { return (await fetchAll({ withArchive: true })).archive; }
+
+// ─── UI Helpers ──────────────────────────────────────────────────────────────
+let _toastTimer = null;
 function showToast(msg, isErr = false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.backgroundColor = isErr ? '#dc2626' : '#1f2937';
   t.classList.remove('hidden');
-  setTimeout(() => t.classList.add('hidden'), 3000);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
-function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function setLoading(btnId, loading, label) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span>${label}` : label;
+}
 
-// Data
-async function getUsers() { const { data } = await db.from('users').select('*'); return data || []; }
-async function getContacts() { const { data } = await db.from('contacts').select('*'); return data || []; }
-async function getArchive() { const { data } = await db.from('contacts_archive').select('*').order('completed_at', { ascending: false }); return data || []; }
+function escapeHtml(t) {
+  if (!t) return '';
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
 
-// Login
+// ─── Login ────────────────────────────────────────────────────────────────────
 async function loadDropdown() {
+  // Always use cache for dropdown if available
   const users = await getUsers();
   const sel = document.getElementById('loginUser');
   sel.innerHTML = '<option value="">-- Choose your name --</option>';
@@ -201,14 +250,22 @@ async function loadDropdown() {
 async function handleLogin() {
   const uid = document.getElementById('loginUser').value;
   const pwd = document.getElementById('loginPassword').value;
+  setLoading('loginBtn', true, 'Signing in…');
   const users = await getUsers();
   const user = users.find(u => u.id === uid);
-  if (!user || user.password !== pwd) { document.getElementById('loginError').classList.remove('hidden'); return; }
+  setLoading('loginBtn', false, 'Sign In');
+  if (!user || user.password !== pwd) {
+    document.getElementById('loginError').classList.remove('hidden');
+    return;
+  }
   document.getElementById('loginError').classList.add('hidden');
   currentUser = user;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   document.getElementById('welcomeName').innerHTML = escapeHtml(user.name);
+
+  // Prefetch all data at login so subsequent views are instant
+  cacheInvalidate('users', 'contacts', 'archive');
   if (user.role === 'admin') {
     document.getElementById('adminDashboard').style.display = 'block';
     document.getElementById('memberDashboard').style.display = 'none';
@@ -222,32 +279,32 @@ async function handleLogin() {
 
 function handleLogout() {
   currentUser = null;
+  cacheInvalidate('users', 'contacts', 'archive');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('loginPassword').value = '';
   loadDropdown();
 }
 
-// Admin
+// ─── Admin ────────────────────────────────────────────────────────────────────
 async function refreshAdmin() {
-  const users = await getUsers();
-  const contacts = await getContacts();
-  const archive = await getArchive();
-  const active = contacts.filter(c => c.status !== 'archived').length;
+  // One parallel fetch for everything the admin view needs
+  const { users, contacts, archive } = await fetchAll({ withArchive: true });
+  const active    = contacts.filter(c => c.status !== 'archived').length;
   const completed = contacts.filter(c => c.status === 'completed').length;
-  const pending = contacts.filter(c => c.status === 'pending').length;
-  document.getElementById('statMembers').innerText = users.filter(u => u.role === 'member').length;
-  document.getElementById('statActive').innerText = active;
+  const pending   = contacts.filter(c => c.status === 'pending').length;
+
+  document.getElementById('statMembers').innerText  = users.filter(u => u.role === 'member').length;
+  document.getElementById('statActive').innerText   = active;
   document.getElementById('statCompleted').innerText = completed;
-  document.getElementById('statArchived').innerText = archive.length;
-  document.getElementById('statPending').innerText = pending;
-  await renderMembers();
-  await renderArchive();
+  document.getElementById('statArchived').innerText  = archive.length;
+  document.getElementById('statPending').innerText   = pending;
+
+  renderMembersFromData(users, contacts);
+  renderArchiveFromData(archive);
 }
 
-async function renderMembers() {
-  const users = await getUsers();
-  const contacts = await getContacts();
+function renderMembersFromData(users, contacts) {
   const container = document.getElementById('membersList');
   container.innerHTML = users.map(u => {
     const assigned = contacts.filter(c => c.assigned_to === u.id);
@@ -256,14 +313,20 @@ async function renderMembers() {
       <div><b>${escapeHtml(u.name)}</b><br><small>${escapeHtml(u.email || 'No email')}</small></div>
       <div class="flex gap-2 items-center">
         <span class="text-sm">${done}/${assigned.length} done</span>
-        ${u.role !== 'admin' ? `<button onclick="deleteMember('${u.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm">Remove</button>` : '<span class="text-gray-400 text-sm">Admin</span>'}
+        ${u.role !== 'admin'
+          ? `<button onclick="deleteMember('${u.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm">Remove</button>`
+          : '<span class="text-gray-400 text-sm">Admin</span>'}
       </div>
     </div>`;
   }).join('');
 }
 
-async function renderArchive() {
-  const archive = await getArchive();
+async function renderMembers() {
+  const { users, contacts } = await fetchAll();
+  renderMembersFromData(users, contacts);
+}
+
+function renderArchiveFromData(archive) {
   const tbody = document.getElementById('archiveList');
   const noMsg = document.getElementById('noArchiveMsg');
   if (archive.length === 0) { tbody.innerHTML = ''; noMsg.classList.remove('hidden'); return; }
@@ -276,21 +339,32 @@ async function renderArchive() {
       <td class="px-3 py-2 text-sm">${a.completed_at ? new Date(a.completed_at).toLocaleDateString() : ''}</td>
     </tr>
   `).join('');
-  if (archive.length > 100) tbody.innerHTML += `<tr><td colspan="4" class="text-center py-2 text-gray-400">... and ${archive.length - 100} more</td></tr>`;
+  if (archive.length > 100)
+    tbody.innerHTML += `<tr><td colspan="4" class="text-center py-2 text-gray-400">… and ${archive.length - 100} more</td></tr>`;
 }
 
-function openAddMemberModal() { document.getElementById('addMemberModal').style.display = 'flex'; document.getElementById('newName').value = ''; document.getElementById('newEmail').value = ''; document.getElementById('newPhone').value = ''; document.getElementById('newPassword').value = ''; }
+async function renderArchive() {
+  const archive = await getArchive();
+  renderArchiveFromData(archive);
+}
+
+// ─── Add / Delete Member ──────────────────────────────────────────────────────
+function openAddMemberModal() {
+  document.getElementById('addMemberModal').style.display = 'flex';
+  ['newName','newEmail','newPhone','newPassword'].forEach(id => document.getElementById(id).value = '');
+}
 function closeAddMemberModal() { document.getElementById('addMemberModal').style.display = 'none'; }
 
 async function addMember() {
   const name = document.getElementById('newName').value.trim();
   const email = document.getElementById('newEmail').value.trim();
   const phone = document.getElementById('newPhone').value.trim();
-  const pwd = document.getElementById('newPassword').value.trim();
-  const role = document.getElementById('newRole').value;
+  const pwd   = document.getElementById('newPassword').value.trim();
+  const role  = document.getElementById('newRole').value;
   if (!name || !pwd) { showToast('Name and password required', true); return; }
   const { error } = await db.from('users').insert([{ name, email, phone, role, password: pwd }]);
   if (error) { showToast(error.message, true); return; }
+  cacheInvalidate('users');
   closeAddMemberModal();
   await refreshAdmin();
   await loadDropdown();
@@ -302,203 +376,237 @@ async function deleteMember(id) {
   const users = await getUsers();
   const others = users.filter(u => u.id !== id && u.role === 'member');
   if (others.length === 0) { showToast('Cannot delete last member', true); return; }
-  const { data: pending } = await db.from('contacts').select('*').eq('assigned_to', id).eq('status', 'pending');
-  for (let i = 0; i < (pending || []).length; i++) {
-    await db.from('contacts').update({ assigned_to: others[i % others.length].id }).eq('id', pending[i].id);
+
+  const { data: pending } = await db.from('contacts').select('id').eq('assigned_to', id).eq('status', 'pending');
+  if (pending?.length) {
+    // Batch updates: build all updates and send concurrently
+    await Promise.all(
+      (pending || []).map((c, i) =>
+        db.from('contacts').update({ assigned_to: others[i % others.length].id }).eq('id', c.id)
+      )
+    );
   }
   await db.from('users').delete().eq('id', id);
+  cacheInvalidate('users', 'contacts');
   await refreshAdmin();
   await loadDropdown();
   showToast('Member removed');
 }
 
-// Upload
+// ─── Upload ───────────────────────────────────────────────────────────────────
 async function uploadContacts() {
   const file = document.getElementById('csvFileInput').files[0];
   if (!file) { showToast('Select a CSV file', true); return; }
   const users = await getUsers();
   const members = users.filter(u => u.role === 'member');
   if (members.length === 0) { showToast('No members found', true); return; }
-  const text = await file.text();
+
+  setLoading('uploadBtn', true, 'Uploading…');
+  const text  = await file.text();
   const lines = text.split('\n').slice(1);
-  let count = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const cols = lines[i].split(',');
-    if (cols[0] && cols[0].trim() && cols[1] && cols[1].trim()) {
-      const member = members[count % members.length];
-      await db.from('contacts').insert({
-        name: cols[0].trim().replace(/^"|"$/g, ''),
-        phone: cols[1].trim().replace(/^"|"$/g, ''),
-        email: cols[2] ? cols[2].trim().replace(/^"|"$/g, '') : '',
-        assigned_to: member.id,
-        status: 'pending'
+  const rows  = [];
+
+  lines.forEach((line, i) => {
+    const cols = line.split(',');
+    if (cols[0]?.trim() && cols[1]?.trim()) {
+      rows.push({
+        name:        cols[0].trim().replace(/^"|"$/g, ''),
+        phone:       cols[1].trim().replace(/^"|"$/g, ''),
+        email:       cols[2] ? cols[2].trim().replace(/^"|"$/g, '') : '',
+        assigned_to: members[rows.length % members.length].id,
+        status:      'pending'
       });
-      count++;
     }
+  });
+
+  // Supabase supports bulk insert — send all rows in one request (up to ~500 safe)
+  const CHUNK = 400;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await db.from('contacts').insert(rows.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, true); setLoading('uploadBtn', false, 'Upload & Distribute'); return; }
   }
-  showToast(`✅ Imported ${count} contacts`);
+
+  setLoading('uploadBtn', false, 'Upload & Distribute');
+  showToast(`✅ Imported ${rows.length} contacts`);
   document.getElementById('csvFileInput').value = '';
+  cacheInvalidate('contacts');
   await refreshAdmin();
 }
 
-// Redistribute ALL pending contacts (admin)
+// ─── Redistribute / Clear ─────────────────────────────────────────────────────
 async function globalRedistribute() {
   if (!confirm('Redistribute ALL pending contacts evenly to all members? Completed calls will NOT be affected.')) return;
-  const users = await getUsers();
+  const { users, contacts } = await fetchAll();
   const members = users.filter(u => u.role === 'member');
-  if (members.length === 0) { showToast('No members', true); return; }
-  const { data: pending } = await db.from('contacts').select('*').eq('status', 'pending');
-  if (!pending || pending.length === 0) { showToast('No pending contacts to redistribute', true); return; }
-  for (let i = 0; i < pending.length; i++) {
-    await db.from('contacts').update({ assigned_to: members[i % members.length].id }).eq('id', pending[i].id);
-  }
+  if (!members.length) { showToast('No members', true); return; }
+  const pending = contacts.filter(c => c.status === 'pending');
+  if (!pending.length) { showToast('No pending contacts to redistribute', true); return; }
+
+  await Promise.all(
+    pending.map((c, i) =>
+      db.from('contacts').update({ assigned_to: members[i % members.length].id }).eq('id', c.id)
+    )
+  );
   showToast(`✅ Redistributed ${pending.length} pending contacts`);
+  cacheInvalidate('contacts');
   await refreshAdmin();
 }
 
-// Clear all pending contacts (admin)
 async function clearAllPending() {
   if (!confirm('⚠️ This will DELETE all pending contacts permanently. Completed calls and archive are safe. Continue?')) return;
   const { error } = await db.from('contacts').delete().eq('status', 'pending');
   if (error) { showToast(error.message, true); return; }
   showToast('✅ All pending contacts cleared');
+  cacheInvalidate('contacts');
   await refreshAdmin();
 }
 
-// Archive a completed contact
+// ─── Archive Contact (single) ─────────────────────────────────────────────────
 async function archiveContact(contact, assignedByName, archivedBy = 'Auto') {
-  await db.from('contacts_archive').insert({
-    original_id: contact.id,
-    name: contact.name,
-    phone: contact.phone,
-    email: contact.email || '',
-    assigned_to: contact.assigned_to,
-    assigned_to_name: assignedByName,
-    status: contact.status,
-    call_status: contact.call_status,
-    feedback: contact.feedback,
-    call_date: contact.call_date,
-    completed_at: new Date().toISOString(),
-    archived_by: archivedBy
-  });
-  await db.from('contacts').delete().eq('id', contact.id);
+  // Both operations fire in parallel
+  await Promise.all([
+    db.from('contacts_archive').insert({
+      original_id: contact.id, name: contact.name, phone: contact.phone,
+      email: contact.email || '', assigned_to: contact.assigned_to,
+      assigned_to_name: assignedByName, status: contact.status,
+      call_status: contact.call_status, feedback: contact.feedback,
+      call_date: contact.call_date, completed_at: new Date().toISOString(),
+      archived_by: archivedBy
+    }),
+    db.from('contacts').delete().eq('id', contact.id)
+  ]);
 }
 
-// Save feedback (auto-archives if completed)
+// ─── Save Feedback ────────────────────────────────────────────────────────────
 async function saveFeedback() {
-  const contactId = document.getElementById('fbContactId').value;
+  const contactId  = document.getElementById('fbContactId').value;
   const callStatus = document.getElementById('callStatus').value;
-  const notes = document.getElementById('callNotes').value.trim();
-  const { data: contact } = await db.from('contacts').select('*').eq('id', contactId).single();
-  if (!contact) { showToast('Contact not found', true); return; }
-  
+  const notes      = document.getElementById('callNotes').value.trim();
+
+  setLoading('saveFeedbackBtn', true, 'Saving…');
+
+  // Use cached contacts to avoid re-fetch
+  const contacts = await getContacts();
+  const contact  = contacts.find(c => c.id === contactId);
+  if (!contact) { showToast('Contact not found', true); setLoading('saveFeedbackBtn', false, 'Save'); return; }
+
+  const isCompleted = callStatus === 'reached';
+
   await db.from('contacts').update({
-    call_status: callStatus,
-    feedback: notes,
-    status: callStatus === 'reached' ? 'completed' : 'pending',
+    call_status: callStatus, feedback: notes,
+    status: isCompleted ? 'completed' : 'pending',
     call_date: new Date().toLocaleString()
   }).eq('id', contactId);
-  
-  if (callStatus === 'reached') {
+
+  if (isCompleted) {
     const users = await getUsers();
     const assignedUser = users.find(u => u.id === contact.assigned_to);
-    await archiveContact(contact, assignedUser?.name || 'Unknown', currentUser?.name || 'System');
+    await archiveContact(
+      { ...contact, call_status: callStatus, feedback: notes, status: 'completed' },
+      assignedUser?.name || 'Unknown',
+      currentUser?.name || 'System'
+    );
     showToast('✅ Call completed and moved to archive');
   } else {
     showToast('Feedback saved (still pending)');
   }
+
+  setLoading('saveFeedbackBtn', false, 'Save');
   closeFeedbackModal();
+  cacheInvalidate('contacts', 'archive');
   await refreshMember();
   if (currentUser?.role === 'admin') await refreshAdmin();
 }
 
-// Release MY pending contacts (member)
+// ─── Release My Pending ───────────────────────────────────────────────────────
 async function releaseMyPending() {
   if (!currentUser) return;
   if (!confirm('Release your pending contacts to other members? Your completed calls will stay with you.')) return;
-  const users = await getUsers();
-  const others = users.filter(u => u.id !== currentUser.id && u.role === 'member');
-  if (others.length === 0) { showToast('No other members to receive contacts', true); return; }
-  const { data: myPending } = await db.from('contacts').select('*').eq('assigned_to', currentUser.id).eq('status', 'pending');
-  if (!myPending || myPending.length === 0) { showToast('You have no pending contacts to release', true); return; }
-  for (let i = 0; i < myPending.length; i++) {
-    await db.from('contacts').update({ assigned_to: others[i % others.length].id }).eq('id', myPending[i].id);
-  }
+  const { users, contacts } = await fetchAll();
+  const others    = users.filter(u => u.id !== currentUser.id && u.role === 'member');
+  if (!others.length) { showToast('No other members to receive contacts', true); return; }
+  const myPending = contacts.filter(c => c.assigned_to === currentUser.id && c.status === 'pending');
+  if (!myPending.length) { showToast('You have no pending contacts to release', true); return; }
+
+  await Promise.all(
+    myPending.map((c, i) =>
+      db.from('contacts').update({ assigned_to: others[i % others.length].id }).eq('id', c.id)
+    )
+  );
   showToast(`📤 Released ${myPending.length} pending contacts`);
+  cacheInvalidate('contacts');
   await refreshMember();
   if (currentUser.role === 'admin') await refreshAdmin();
 }
 
-// Archive management
+// ─── Archive Download / Clear ─────────────────────────────────────────────────
 async function downloadArchive() {
   const archive = await getArchive();
-  if (archive.length === 0) { showToast('Archive is empty', true); return; }
-  const data = [['Name', 'Phone', 'Email', 'Completed By', 'Feedback', 'Date']];
-  for (const a of archive) {
-    data.push([a.name, a.phone, a.email || '', a.archived_by || 'Auto', a.feedback || '', a.completed_at ? new Date(a.completed_at).toLocaleString() : '']);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(data);
+  if (!archive.length) { showToast('Archive is empty', true); return; }
+  const data = [['Name','Phone','Email','Completed By','Feedback','Date']];
+  archive.forEach(a => data.push([
+    a.name, a.phone, a.email || '', a.archived_by || 'Auto',
+    a.feedback || '', a.completed_at ? new Date(a.completed_at).toLocaleString() : ''
+  ]));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Archive');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Archive');
   XLSX.writeFile(wb, `Archive_${new Date().toISOString().split('T')[0]}.xlsx`);
   showToast(`📥 Downloaded ${archive.length} records`);
 }
 
 async function clearArchive() {
   const archive = await getArchive();
-  if (archive.length === 0) { showToast('Archive is empty', true); return; }
+  if (!archive.length) { showToast('Archive is empty', true); return; }
   if (!confirm(`⚠️ This will delete ${archive.length} archived records from the system. Make sure you downloaded them first. Continue?`)) return;
   const { error } = await db.from('contacts_archive').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   if (error) { showToast(error.message, true); return; }
   showToast(`✅ Cleared ${archive.length} records from system`);
+  cacheInvalidate('archive');
   await refreshAdmin();
 }
 
 async function downloadFullReport() {
-  const users = await getUsers();
-  const contacts = await getContacts();
-  const archive = await getArchive();
-  const data = [['Name', 'Phone', 'Email', 'Assigned To', 'Status', 'Call Result', 'Feedback', 'Date']];
-  for (const c of contacts) {
+  const { users, contacts, archive } = await fetchAll({ withArchive: true });
+  const data = [['Name','Phone','Email','Assigned To','Status','Call Result','Feedback','Date']];
+  contacts.forEach(c => {
     const u = users.find(u => u.id === c.assigned_to);
     data.push([c.name, c.phone, c.email || '', u?.name || 'Unassigned', c.status, c.call_status || '', c.feedback || '', c.call_date || '']);
-  }
-  for (const a of archive) {
-    data.push([a.name, a.phone, a.email || '', a.assigned_to_name || 'Archived', 'ARCHIVED', a.call_status || '', a.feedback || '', a.completed_at ? new Date(a.completed_at).toLocaleString() : '']);
-  }
-  const ws = XLSX.utils.aoa_to_sheet(data);
+  });
+  archive.forEach(a => data.push([
+    a.name, a.phone, a.email || '', a.assigned_to_name || 'Archived',
+    'ARCHIVED', a.call_status || '', a.feedback || '',
+    a.completed_at ? new Date(a.completed_at).toLocaleString() : ''
+  ]));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Full Report');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Full Report');
   XLSX.writeFile(wb, `Full_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
   showToast('📥 Full report downloaded');
 }
 
-// Member functions
+// ─── Member View ──────────────────────────────────────────────────────────────
 async function refreshMember() {
   if (!currentUser) return;
-  const contacts = await getContacts();
+  const contacts  = await getContacts();
   const myContacts = contacts.filter(c => c.assigned_to === currentUser.id);
-  const completed = myContacts.filter(c => c.status === 'completed').length;
+  const completed  = myContacts.filter(c => c.status === 'completed').length;
   const pct = myContacts.length ? Math.round((completed / myContacts.length) * 100) : 0;
-  document.getElementById('memberTotal').innerText = myContacts.length;
+  document.getElementById('memberTotal').innerText     = myContacts.length;
   document.getElementById('memberCompleted').innerText = completed;
-  document.getElementById('memberPending').innerText = myContacts.length - completed;
+  document.getElementById('memberPending').innerText   = myContacts.length - completed;
   document.getElementById('progressPercent').innerText = pct + '%';
-  document.getElementById('progressBar').style.width = pct + '%';
-  await renderMemberContacts();
+  document.getElementById('progressBar').style.width   = pct + '%';
+  renderMemberContactsFromData(myContacts);
 }
 
-async function renderMemberContacts() {
-  if (!currentUser) return;
-  const contacts = await getContacts();
+function renderMemberContactsFromData(myContacts) {
   const search = document.getElementById('memberSearch')?.value?.toLowerCase() || '';
-  let myContacts = contacts.filter(c => c.assigned_to === currentUser.id);
-  if (search) myContacts = myContacts.filter(c => c.name.toLowerCase().includes(search) || c.phone.includes(search));
+  let filtered = myContacts;
+  if (search) filtered = myContacts.filter(c => c.name.toLowerCase().includes(search) || c.phone.includes(search));
   const container = document.getElementById('memberContactsList');
-  const noMsg = document.getElementById('noMemberContacts');
-  if (myContacts.length === 0) { container.innerHTML = ''; noMsg.classList.remove('hidden'); return; }
+  const noMsg     = document.getElementById('noMemberContacts');
+  if (!filtered.length) { container.innerHTML = ''; noMsg.classList.remove('hidden'); return; }
   noMsg.classList.add('hidden');
-  container.innerHTML = myContacts.map(c => `
+  container.innerHTML = filtered.map(c => `
     <div class="p-4 border-b hover:bg-gray-50">
       <div class="flex justify-between items-start">
         <div>
@@ -515,36 +623,42 @@ async function renderMemberContacts() {
   `).join('');
 }
 
+async function renderMemberContacts() {
+  // Called from search input — use cached data, don't re-fetch
+  const contacts  = await getContacts();
+  const myContacts = contacts.filter(c => c.assigned_to === currentUser?.id);
+  renderMemberContactsFromData(myContacts);
+}
+
 async function openFeedbackModal(id) {
-  const contacts = await getContacts();
+  const contacts = await getContacts(); // uses cache
   const c = contacts.find(c => c.id === id);
   if (!c) return;
-  document.getElementById('fbContactId').value = id;
-  document.getElementById('fbName').innerHTML = c.name;
-  document.getElementById('fbPhone').innerHTML = c.phone;
-  document.getElementById('callStatus').value = c.call_status || 'reached';
-  document.getElementById('callNotes').value = c.feedback || '';
+  document.getElementById('fbContactId').value   = id;
+  document.getElementById('fbName').innerHTML    = escapeHtml(c.name);
+  document.getElementById('fbPhone').innerHTML   = escapeHtml(c.phone);
+  document.getElementById('callStatus').value    = c.call_status || 'reached';
+  document.getElementById('callNotes').value     = c.feedback || '';
   document.getElementById('feedbackModal').style.display = 'flex';
 }
 
 function closeFeedbackModal() { document.getElementById('feedbackModal').style.display = 'none'; }
 
-// Tab switching
+// ─── Tab Switching ────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  const tabs = ['members', 'upload', 'archive', 'reports'];
-  tabs.forEach(t => {
+  ['members','upload','archive','reports'].forEach(t => {
     document.getElementById(`${t}Tab`).classList.add('hidden');
     const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    if (btn) { btn.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600'); btn.classList.add('text-gray-500'); }
+    if (btn) { btn.classList.remove('text-indigo-600','border-b-2','border-indigo-600'); btn.classList.add('text-gray-500'); }
   });
   document.getElementById(`${tab}Tab`).classList.remove('hidden');
   const activeBtn = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-  if (activeBtn) { activeBtn.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600'); activeBtn.classList.remove('text-gray-500'); }
+  if (activeBtn) { activeBtn.classList.add('text-indigo-600','border-b-2','border-indigo-600'); activeBtn.classList.remove('text-gray-500'); }
   if (tab === 'archive') renderArchive();
 }
 
-// Init
-document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('loginPassword').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
 loadDropdown();
 </script>
 </body>
