@@ -73,17 +73,25 @@
   </div>
 </div>
 
-<!-- Add Member Modal -->
+<!-- Add Member Modal WITH ROLE TOGGLE -->
 <div id="addModal" style="display:none;" class="fixed inset-0 modal-overlay flex items-center justify-center p-4">
   <div class="bg-white rounded-xl p-6 w-full max-w-md">
-    <h3 class="text-lg font-bold mb-4">Add Member</h3>
+    <h3 class="text-lg font-bold mb-4">Add New Member</h3>
     <input type="text" id="newName" placeholder="Full Name" class="w-full p-2 border rounded mb-2">
     <input type="email" id="newEmail" placeholder="Email" class="w-full p-2 border rounded mb-2">
     <input type="text" id="newPhone" placeholder="Phone" class="w-full p-2 border rounded mb-2">
-    <input type="password" id="newPassword" placeholder="Password" class="w-full p-2 border rounded mb-4">
+    <input type="password" id="newPassword" placeholder="Password" class="w-full p-2 border rounded mb-2">
+    
+    <!-- ROLE TOGGLE - Member or Admin -->
+    <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+    <select id="newRole" class="w-full p-2 border rounded mb-4">
+      <option value="member">Member</option>
+      <option value="admin">Admin</option>
+    </select>
+    
     <div class="flex gap-2">
       <button onclick="closeModal()" class="flex-1 bg-gray-200 py-2 rounded">Cancel</button>
-      <button onclick="addMember()" class="flex-1 bg-indigo-600 text-white py-2 rounded">Add</button>
+      <button onclick="addMember()" class="flex-1 bg-indigo-600 text-white py-2 rounded">Add Member</button>
     </div>
   </div>
 </div>
@@ -108,7 +116,7 @@ async function loadLoginDropdown() {
   const select = document.getElementById('loginUser');
   select.innerHTML = '<option value="">-- Choose your name --</option>';
   users.forEach(u => {
-    select.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+    select.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
   });
 }
 
@@ -201,6 +209,7 @@ window.openAddModal = function() {
   document.getElementById('newEmail').value = '';
   document.getElementById('newPhone').value = '';
   document.getElementById('newPassword').value = '';
+  document.getElementById('newRole').value = 'member';
 };
 
 // Close modal
@@ -208,12 +217,13 @@ window.closeModal = function() {
   document.getElementById('addModal').style.display = 'none';
 };
 
-// Add member
+// Add member WITH ROLE TOGGLE
 window.addMember = async function() {
   const name = document.getElementById('newName').value.trim();
   const email = document.getElementById('newEmail').value.trim();
   const phone = document.getElementById('newPhone').value.trim();
   const password = document.getElementById('newPassword').value.trim();
+  const role = document.getElementById('newRole').value;
   
   if (!name || !password) {
     alert('Name and password are required');
@@ -224,7 +234,7 @@ window.addMember = async function() {
     name: name,
     email: email,
     phone: phone,
-    role: 'member',
+    role: role,
     password: password
   }]);
   
@@ -236,10 +246,10 @@ window.addMember = async function() {
   closeModal();
   await loadAdminPanel();
   await loadLoginDropdown();
-  alert(`✅ Member "${name}" added successfully`);
+  alert(`✅ ${role === 'admin' ? 'Admin' : 'Member'} "${name}" added successfully`);
 };
 
-// DELETE MEMBER - THIS WORKS NOW
+// DELETE MEMBER - WORKS
 window.deleteMember = async function(userId) {
   if (!confirm('⚠️ Are you sure you want to delete this member permanently?')) {
     return;
