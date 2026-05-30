@@ -58,7 +58,7 @@
 
       <div id="uploadTab" class="hidden p-4">
         <input type="file" id="csvFile" accept=".csv">
-        <button onclick="uploadContacts()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg mt-2">Upload</button>
+        <button onclick="uploadContacts()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg mt-2">Distribute & Upload</button>
       </div>
 
       <div id="reportsTab" class="hidden p-4">
@@ -87,15 +87,15 @@
 </div>
 
 <script>
-const supabase = supabase.createClient(
-  'https://igugnnoqfelotyhawtat.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8'
-);
+// SINGLE SUPABASE INSTANCE - NO DUPLICATES
+const supabaseUrl = 'https://igugnnoqfelotyhawtat.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8';
+const sb = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 let currentUser = null;
 
 async function loadUsers() {
-  const { data } = await supabase.from('users').select('*');
+  const { data } = await sb.from('users').select('*');
   return data || [];
 }
 
@@ -145,7 +145,7 @@ async function logout() {
 
 async function refreshAdmin() {
   const users = await loadUsers();
-  const { data: contacts } = await supabase.from('contacts').select('*');
+  const { data: contacts } = await sb.from('contacts').select('*');
   
   document.getElementById('statMembers').textContent = users.filter(u => u.role === 'member').length;
   document.getElementById('statContacts').textContent = contacts?.length || 0;
@@ -160,7 +160,7 @@ async function refreshAdmin() {
 }
 
 async function refreshMember() {
-  const { data: contacts } = await supabase.from('contacts').select('*').eq('assigned_to', currentUser.id);
+  const { data: contacts } = await sb.from('contacts').select('*').eq('assigned_to', currentUser.id);
   const container = document.getElementById('memberContacts');
   
   if (!contacts || contacts.length === 0) {
@@ -197,7 +197,7 @@ async function addMember() {
     return;
   }
   
-  await supabase.from('users').insert([{ name, email, phone, role: 'member', password }]);
+  await sb.from('users').insert([{ name, email, phone, role: 'member', password }]);
   closeModal();
   await refreshAdmin();
   await loadDropdown();
@@ -206,7 +206,7 @@ async function addMember() {
 
 async function removeMember(id) {
   if (!confirm('Remove this member?')) return;
-  await supabase.from('users').delete().eq('id', id);
+  await sb.from('users').delete().eq('id', id);
   await refreshAdmin();
   await loadDropdown();
 }
@@ -221,28 +221,31 @@ async function uploadContacts() {
   
   const text = await file.text();
   const lines = text.split('\n').slice(1);
+  let imported = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const cols = lines[i].split(',');
     if (cols[0] && cols[1]) {
-      const member = members[i % members.length];
-      await supabase.from('contacts').insert([{
+      const member = members[imported % members.length];
+      await sb.from('contacts').insert([{
         name: cols[0].trim(),
         phone: cols[1].trim(),
         email: cols[2]?.trim() || '',
         assigned_to: member.id,
         status: 'pending'
       }]);
+      imported++;
     }
   }
   
-  alert('Contacts uploaded');
+  alert(`✅ Imported ${imported} contacts to ${members.length} members`);
+  document.getElementById('csvFile').value = '';
   await refreshAdmin();
 }
 
 async function downloadReport() {
   const users = await loadUsers();
-  const { data: contacts } = await supabase.from('contacts').select('*');
+  const { data: contacts } = await sb.from('contacts').select('*');
   
   const data = [['Name', 'Phone', 'Email', 'Assigned To', 'Status']];
   for (const c of contacts || []) {
