@@ -15,350 +15,255 @@
 </head>
 <body class="min-h-screen">
 
-<!-- Login Screen -->
 <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
     <div class="text-center mb-8">
-      <div class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-        </svg>
-      </div>
       <h1 class="text-2xl font-bold text-gray-800">Church M&E Committee</h1>
       <p class="text-gray-500 mt-1">Monitoring & Evaluation System</p>
     </div>
     <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Your Account</label>
-        <select id="loginUser" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
-          <option value="">-- Choose your name --</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input type="password" id="loginPassword" placeholder="Enter password" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
-      </div>
-      <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">
-        Sign In
-      </button>
+      <select id="loginUser" class="w-full px-4 py-3 border rounded-lg">
+        <option value="">-- Choose your name --</option>
+      </select>
+      <input type="password" id="loginPassword" placeholder="Password" class="w-full px-4 py-3 border rounded-lg">
+      <button onclick="login()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold">Sign In</button>
       <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
     </div>
   </div>
 </div>
 
-<!-- Main App -->
 <div id="mainApp" class="hidden min-h-screen">
-  <header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div>
-        <h1 class="font-bold text-gray-800">M&E Committee</h1>
-        <p class="text-xs text-gray-500" id="userRoleDisplay"></p>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-gray-600" id="welcomeName"></span>
-        <button onclick="handleLogout()" class="bg-gray-100 px-3 py-2 rounded-lg">Logout</button>
-      </div>
-    </div>
+  <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center">
+    <h1 class="font-bold">M&E Committee</h1>
+    <button onclick="logout()" class="bg-gray-100 px-3 py-2 rounded-lg">Logout</button>
   </header>
 
-  <!-- Admin Dashboard -->
-  <div id="adminDashboard" class="hidden max-w-7xl mx-auto px-4 py-6">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl p-4"><div class="text-2xl font-bold text-indigo-600" id="statMembers">0</div><div class="text-sm text-gray-500">Members</div></div>
-      <div class="bg-white rounded-xl p-4"><div class="text-2xl font-bold text-blue-600" id="statContacts">0</div><div class="text-sm text-gray-500">Contacts</div></div>
+  <div id="adminView" class="hidden max-w-6xl mx-auto px-4 py-6">
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl"><div class="text-2xl font-bold text-indigo-600" id="statMembers">0</div><div>Members</div></div>
+      <div class="bg-white p-4 rounded-xl"><div class="text-2xl font-bold text-blue-600" id="statContacts">0</div><div>Contacts</div></div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm">
+    <div class="bg-white rounded-xl">
       <div class="flex border-b">
-        <button onclick="switchTab('members')" id="tabMembers" class="px-6 py-3 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600">👥 Members</button>
-        <button onclick="switchTab('upload')" id="tabUpload" class="px-6 py-3 text-sm font-medium text-gray-500">📤 Upload</button>
-        <button onclick="switchTab('reports')" id="tabReports" class="px-6 py-3 text-sm font-medium text-gray-500">📊 Reports</button>
+        <button onclick="showTab('members')" class="px-4 py-2 text-indigo-600 border-b-2 border-indigo-600">Members</button>
+        <button onclick="showTab('upload')" class="px-4 py-2 text-gray-500">Upload</button>
+        <button onclick="showTab('reports')" class="px-4 py-2 text-gray-500">Reports</button>
       </div>
 
-      <div id="panelMembers" class="p-4">
-        <div class="flex justify-between mb-4">
-          <h3 class="font-semibold">Committee Members</h3>
-          <button onclick="openAddMemberModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">+ Add Member</button>
-        </div>
-        <div id="membersList" class="space-y-3"></div>
+      <div id="membersTab" class="p-4">
+        <button onclick="showAddMember()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg mb-4">+ Add Member</button>
+        <div id="membersList"></div>
       </div>
 
-      <div id="panelUpload" class="hidden p-4">
-        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <input type="file" id="csvFile" accept=".csv" class="mb-4">
-          <button onclick="uploadContacts()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg">Upload & Distribute</button>
-        </div>
+      <div id="uploadTab" class="hidden p-4">
+        <input type="file" id="csvFile" accept=".csv">
+        <button onclick="uploadContacts()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg mt-2">Upload</button>
       </div>
 
-      <div id="panelReports" class="hidden p-4">
-        <button onclick="downloadReport()" class="bg-green-600 text-white px-6 py-3 rounded-lg">📥 Download Report</button>
+      <div id="reportsTab" class="hidden p-4">
+        <button onclick="downloadReport()" class="bg-green-600 text-white px-4 py-2 rounded-lg">Download Report</button>
       </div>
     </div>
   </div>
 
-  <!-- Member Dashboard -->
-  <div id="memberDashboard" class="hidden max-w-4xl mx-auto px-4 py-6">
-    <div id="memberContactsList" class="bg-white rounded-xl shadow-sm divide-y"></div>
+  <div id="memberView" class="hidden max-w-4xl mx-auto px-4 py-6">
+    <div id="memberContacts" class="bg-white rounded-xl divide-y"></div>
   </div>
 </div>
 
-<!-- Add Member Modal -->
-<div id="addMemberModal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+<div id="addModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md">
     <h3 class="text-lg font-bold mb-4">Add Member</h3>
-    <input type="text" id="memberName" placeholder="Full Name" class="w-full px-4 py-2 border rounded-lg mb-3">
-    <input type="email" id="memberEmail" placeholder="Email" class="w-full px-4 py-2 border rounded-lg mb-3">
-    <input type="text" id="memberPhone" placeholder="Phone" class="w-full px-4 py-2 border rounded-lg mb-3">
-    <input type="password" id="memberPassword" placeholder="Password" class="w-full px-4 py-2 border rounded-lg mb-3">
-    <select id="memberRole" class="w-full px-4 py-2 border rounded-lg mb-4">
-      <option value="member">Member</option>
-      <option value="admin">Admin</option>
-    </select>
-    <div class="flex gap-3">
-      <button onclick="closeAddMemberModal()" class="flex-1 bg-gray-100 py-2 rounded-lg">Cancel</button>
+    <input type="text" id="newName" placeholder="Name" class="w-full px-3 py-2 border rounded-lg mb-3">
+    <input type="email" id="newEmail" placeholder="Email" class="w-full px-3 py-2 border rounded-lg mb-3">
+    <input type="text" id="newPhone" placeholder="Phone" class="w-full px-3 py-2 border rounded-lg mb-3">
+    <input type="password" id="newPassword" placeholder="Password" class="w-full px-3 py-2 border rounded-lg mb-3">
+    <div class="flex gap-2">
+      <button onclick="closeModal()" class="flex-1 bg-gray-100 py-2 rounded-lg">Cancel</button>
       <button onclick="addMember()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg">Add</button>
     </div>
   </div>
 </div>
 
 <script>
-// ==================== CORRECT SUPABASE CONFIGURATION ====================
-// FIXED: Removed /rest/v1/ - using the correct base URL
-const supabaseUrl = 'https://igugnnoqfelotyhawtat.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8';
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = supabase.createClient(
+  'https://igugnnoqfelotyhawtat.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8'
+);
 
 let currentUser = null;
 
-// Load users into dropdown
 async function loadUsers() {
-  const { data, error } = await supabaseClient.from('users').select('*');
-  if (error) {
-    console.error('Error loading users:', error);
-    return [];
-  }
+  const { data } = await supabase.from('users').select('*');
   return data || [];
 }
 
-async function loadLoginDropdown() {
+async function loadDropdown() {
   const users = await loadUsers();
   const select = document.getElementById('loginUser');
   select.innerHTML = '<option value="">-- Choose your name --</option>';
-  users.forEach(user => {
-    select.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
+  users.forEach(u => {
+    select.innerHTML += `<option value="${u.id}">${u.name}</option>`;
   });
 }
 
-// Login handler
-window.handleLogin = async function() {
+async function login() {
   const userId = document.getElementById('loginUser').value;
   const password = document.getElementById('loginPassword').value;
-  const errorEl = document.getElementById('loginError');
-
-  if (!userId || !password) {
-    errorEl.textContent = 'Please select name and enter password';
-    errorEl.classList.remove('hidden');
-    return;
-  }
-
   const users = await loadUsers();
   const user = users.find(u => u.id === userId);
-
+  
   if (!user || user.password !== password) {
-    errorEl.textContent = 'Invalid password';
-    errorEl.classList.remove('hidden');
+    document.getElementById('loginError').classList.remove('hidden');
     return;
   }
-
-  errorEl.classList.add('hidden');
+  
+  document.getElementById('loginError').classList.add('hidden');
   currentUser = user;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
-  document.getElementById('welcomeName').textContent = `Welcome, ${user.name}`;
-  document.getElementById('userRoleDisplay').textContent = user.role === 'admin' ? 'Admin' : 'Member';
-
+  
   if (user.role === 'admin') {
-    document.getElementById('adminDashboard').classList.remove('hidden');
-    document.getElementById('memberDashboard').classList.add('hidden');
-    await refreshAdminDashboard();
+    document.getElementById('adminView').classList.remove('hidden');
+    document.getElementById('memberView').classList.add('hidden');
+    await refreshAdmin();
   } else {
-    document.getElementById('adminDashboard').classList.add('hidden');
-    document.getElementById('memberDashboard').classList.remove('hidden');
-    await refreshMemberDashboard();
+    document.getElementById('adminView').classList.add('hidden');
+    document.getElementById('memberView').classList.remove('hidden');
+    await refreshMember();
   }
-};
+}
 
-window.handleLogout = function() {
+async function logout() {
   currentUser = null;
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
-  loadLoginDropdown();
-};
-
-async function refreshAdminDashboard() {
-  const users = await loadUsers();
-  const members = users.filter(u => u.role === 'member');
-  document.getElementById('statMembers').textContent = members.length;
-  
-  const { data: contacts } = await supabaseClient.from('contacts').select('*');
-  document.getElementById('statContacts').textContent = contacts?.length || 0;
-  
-  await renderMembersList();
+  loadDropdown();
 }
 
-async function renderMembersList() {
+async function refreshAdmin() {
   const users = await loadUsers();
-  const container = document.getElementById('membersList');
+  const { data: contacts } = await supabase.from('contacts').select('*');
   
-  container.innerHTML = users.map(user => `
-    <div class="flex justify-between items-center bg-gray-50 rounded-lg p-4">
-      <div>
-        <p class="font-semibold">${user.name}</p>
-        <p class="text-xs text-gray-500">${user.email || 'No email'} · ${user.role}</p>
-      </div>
-      ${user.role !== 'admin' ? `<button onclick="removeMember('${user.id}')" class="text-red-500 text-sm">Remove</button>` : '<span class="text-xs text-gray-400">Admin</span>'}
+  document.getElementById('statMembers').textContent = users.filter(u => u.role === 'member').length;
+  document.getElementById('statContacts').textContent = contacts?.length || 0;
+  
+  const container = document.getElementById('membersList');
+  container.innerHTML = users.map(u => `
+    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg mb-2">
+      <div><b>${u.name}</b><br><small>${u.email || 'No email'}</small></div>
+      ${u.role !== 'admin' ? `<button onclick="removeMember('${u.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm">Remove</button>` : '<span class="text-gray-400">Admin</span>'}
     </div>
   `).join('');
 }
 
-window.openAddMemberModal = function() {
-  document.getElementById('addMemberModal').classList.remove('hidden');
-  document.getElementById('memberName').value = '';
-  document.getElementById('memberEmail').value = '';
-  document.getElementById('memberPhone').value = '';
-  document.getElementById('memberPassword').value = '';
-};
-
-window.closeAddMemberModal = function() {
-  document.getElementById('addMemberModal').classList.add('hidden');
-};
-
-window.addMember = async function() {
-  const name = document.getElementById('memberName').value.trim();
-  const email = document.getElementById('memberEmail').value.trim();
-  const phone = document.getElementById('memberPhone').value.trim();
-  const password = document.getElementById('memberPassword').value.trim();
-  const role = document.getElementById('memberRole').value;
-
-  if (!name || !password) {
-    alert('Name and password are required');
-    return;
-  }
-
-  const { error } = await supabaseClient.from('users').insert([{ name, email, phone, role, password }]);
-  if (error) {
-    alert('Error: ' + error.message);
-    return;
-  }
-
-  closeAddMemberModal();
-  await refreshAdminDashboard();
-  await loadLoginDropdown();
-  alert(`✅ Member "${name}" added!`);
-};
-
-window.removeMember = async function(userId) {
-  if (!confirm('Remove this member?')) return;
-  await supabaseClient.from('users').delete().eq('id', userId);
-  await refreshAdminDashboard();
-  await loadLoginDropdown();
-};
-
-async function refreshMemberDashboard() {
-  if (!currentUser) return;
-  const { data: contacts } = await supabaseClient.from('contacts').select('*').eq('assigned_to', currentUser.id);
+async function refreshMember() {
+  const { data: contacts } = await supabase.from('contacts').select('*').eq('assigned_to', currentUser.id);
+  const container = document.getElementById('memberContacts');
   
-  const container = document.getElementById('memberContactsList');
   if (!contacts || contacts.length === 0) {
-    container.innerHTML = '<div class="p-8 text-center text-gray-400">No contacts assigned yet</div>';
+    container.innerHTML = '<div class="p-8 text-center text-gray-400">No contacts assigned</div>';
     return;
   }
   
   container.innerHTML = contacts.map(c => `
     <div class="p-4 border-b">
-      <p class="font-semibold">${c.name}</p>
-      <p class="text-sm text-gray-500">📞 ${c.phone}</p>
-      <p class="text-sm mt-2">Status: ${c.status === 'completed' ? '✅ Completed' : '⏳ Pending'}</p>
-      <a href="tel:${c.phone}" class="inline-block mt-2 bg-green-600 text-white px-4 py-1 rounded-lg text-sm">Call</a>
+      <p><b>${c.name}</b></p>
+      <p>📞 ${c.phone}</p>
+      <p class="text-sm mt-1">Status: ${c.status === 'completed' ? '✅ Done' : '⏳ Pending'}</p>
+      <a href="tel:${c.phone}" class="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded-lg text-sm">Call</a>
     </div>
   `).join('');
 }
 
-window.uploadContacts = async function() {
-  const file = document.getElementById('csvFile').files[0];
-  if (!file) {
-    alert('Please select a CSV file');
+function showAddMember() {
+  document.getElementById('addModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('addModal').classList.add('hidden');
+}
+
+async function addMember() {
+  const name = document.getElementById('newName').value;
+  const email = document.getElementById('newEmail').value;
+  const phone = document.getElementById('newPhone').value;
+  const password = document.getElementById('newPassword').value;
+  
+  if (!name || !password) {
+    alert('Name and password required');
     return;
   }
+  
+  await supabase.from('users').insert([{ name, email, phone, role: 'member', password }]);
+  closeModal();
+  await refreshAdmin();
+  await loadDropdown();
+  alert('Member added');
+}
+
+async function removeMember(id) {
+  if (!confirm('Remove this member?')) return;
+  await supabase.from('users').delete().eq('id', id);
+  await refreshAdmin();
+  await loadDropdown();
+}
+
+async function uploadContacts() {
+  const file = document.getElementById('csvFile').files[0];
+  if (!file) return alert('Select a CSV file');
   
   const users = await loadUsers();
   const members = users.filter(u => u.role === 'member');
+  if (members.length === 0) return alert('No members found');
   
-  if (members.length === 0) {
-    alert('No members found. Add members first.');
-    return;
-  }
+  const text = await file.text();
+  const lines = text.split('\n').slice(1);
   
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const text = e.target.result;
-    const lines = text.split('\n').slice(1);
-    
-    for (let i = 0; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length >= 2 && cols[0].trim()) {
-        const member = members[i % members.length];
-        await supabaseClient.from('contacts').insert([{
-          name: cols[0].trim(),
-          phone: cols[1].trim(),
-          email: cols[2]?.trim() || '',
-          assigned_to: member.id,
-          status: 'pending'
-        }]);
-      }
+  for (let i = 0; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols[0] && cols[1]) {
+      const member = members[i % members.length];
+      await supabase.from('contacts').insert([{
+        name: cols[0].trim(),
+        phone: cols[1].trim(),
+        email: cols[2]?.trim() || '',
+        assigned_to: member.id,
+        status: 'pending'
+      }]);
     }
-    
-    alert(`Contacts uploaded!`);
-    await refreshAdminDashboard();
-  };
-  reader.readAsText(file);
-};
-
-window.switchTab = function(tab) {
-  document.getElementById('panelMembers').classList.add('hidden');
-  document.getElementById('panelUpload').classList.add('hidden');
-  document.getElementById('panelReports').classList.add('hidden');
-  document.getElementById(`panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
-  
-  document.getElementById('tabMembers').classList.remove('text-indigo-600', 'border-indigo-600');
-  document.getElementById('tabUpload').classList.remove('text-indigo-600', 'border-indigo-600');
-  document.getElementById('tabReports').classList.remove('text-indigo-600', 'border-indigo-600');
-  document.getElementById('tabMembers').classList.add('text-gray-500');
-  document.getElementById('tabUpload').classList.add('text-gray-500');
-  document.getElementById('tabReports').classList.add('text-gray-500');
-  
-  document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
-};
-
-window.downloadReport = async function() {
-  const users = await loadUsers();
-  const { data: contacts } = await supabaseClient.from('contacts').select('*');
-  
-  const reportData = [['Name', 'Phone', 'Email', 'Assigned To', 'Status']];
-  for (const c of contacts || []) {
-    const assigned = users.find(u => u.id === c.assigned_to);
-    reportData.push([c.name, c.phone, c.email || '', assigned?.name || 'Unknown', c.status]);
   }
   
-  const ws = XLSX.utils.aoa_to_sheet(reportData);
+  alert('Contacts uploaded');
+  await refreshAdmin();
+}
+
+async function downloadReport() {
+  const users = await loadUsers();
+  const { data: contacts } = await supabase.from('contacts').select('*');
+  
+  const data = [['Name', 'Phone', 'Email', 'Assigned To', 'Status']];
+  for (const c of contacts || []) {
+    const user = users.find(u => u.id === c.assigned_to);
+    data.push([c.name, c.phone, c.email || '', user?.name || 'Unknown', c.status]);
+  }
+  
+  const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-  XLSX.writeFile(wb, `ME_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-};
+  XLSX.writeFile(wb, `report_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 
-// Initialize
-loadLoginDropdown();
+function showTab(tab) {
+  document.getElementById('membersTab').classList.add('hidden');
+  document.getElementById('uploadTab').classList.add('hidden');
+  document.getElementById('reportsTab').classList.add('hidden');
+  document.getElementById(`${tab}Tab`).classList.remove('hidden');
+}
+
+loadDropdown();
 </script>
 </body>
 </html>
