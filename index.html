@@ -372,14 +372,11 @@ function showToast(message, isError = false) {
   }, 3000);
 }
 
-function setLoading(button, isLoading) {
-  if (isLoading) {
-    button.disabled = true;
-    button.innerHTML = '<span class="loading-spinner"></span> Loading...';
-  } else {
-    button.disabled = false;
-    button.innerHTML = button.getAttribute('data-original-text') || 'Sign In';
-  }
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // ==================== DATA FUNCTIONS ====================
@@ -407,7 +404,7 @@ async function populateLoginDropdown() {
   const select = document.getElementById('loginUser');
   select.innerHTML = '<option value="">-- Choose your name --</option>';
   users.forEach(u => {
-    select.innerHTML += `<option value="${u.id}">${u.name} (${u.role === 'admin' ? 'Admin' : 'Member'})</option>`;
+    select.innerHTML += `<option value="${u.id}">${escapeHtml(u.name)} (${u.role === 'admin' ? 'Admin' : 'Member'})</option>`;
   });
 }
 
@@ -420,26 +417,20 @@ async function handleLogin() {
   if (!userId) {
     errorEl.textContent = '❌ Please select your name';
     errorEl.classList.remove('hidden');
-    showToast('Please select your name', true);
     return;
   }
   if (!password) {
     errorEl.textContent = '❌ Please enter your password';
     errorEl.classList.remove('hidden');
-    showToast('Please enter your password', true);
     return;
   }
 
-  setLoading(loginBtn, true);
-  
   const users = await loadUsers();
   const user = users.find(u => u.id === userId);
 
   if (!user || user.password !== password) {
     errorEl.textContent = '❌ Invalid password. Please try again.';
     errorEl.classList.remove('hidden');
-    showToast('Invalid password', true);
-    setLoading(loginBtn, false);
     return;
   }
 
@@ -447,9 +438,8 @@ async function handleLogin() {
   currentUser = user;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
-  document.getElementById('welcomeName').textContent = `Welcome, ${user.name}`;
+  document.getElementById('welcomeName').textContent = `Welcome, ${escapeHtml(user.name)}`;
   document.getElementById('userRoleDisplay').textContent = user.role === 'admin' ? 'Administrator' : 'Committee Member';
-  showToast(`Welcome back, ${user.name}!`);
 
   if (user.role === 'admin') {
     document.getElementById('adminDashboard').classList.remove('hidden');
@@ -460,8 +450,6 @@ async function handleLogin() {
     document.getElementById('memberDashboard').classList.remove('hidden');
     refreshMemberDashboard();
   }
-  
-  setLoading(loginBtn, false);
 }
 
 function handleLogout() {
@@ -555,7 +543,7 @@ async function renderMembersList() {
     return `<div class="flex items-center justify-between bg-gray-50 rounded-lg p-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-600'} flex items-center justify-center font-bold">
-          ${u.name.charAt(0)}
+          ${escapeHtml(u.name.charAt(0))}
         </div>
         <div>
           <p class="font-semibold text-gray-800">${escapeHtml(u.name)}</p>
@@ -616,13 +604,10 @@ async function removeMember(userId) {
   if (!confirm('⚠️ Are you sure you want to remove this member? Their assigned contacts will become unassigned.')) return;
 
   let contacts = await loadContacts();
-  contacts = contacts.map(c => {
-    if (c.assigned_to === userId) c.assigned_to = null;
-    return c;
-  });
-  
   for (const c of contacts) {
-    await db.from('contacts').update({ assigned_to: c.assigned_to }).eq('id', c.id);
+    if (c.assigned_to === userId) {
+      await db.from('contacts').update({ assigned_to: null }).eq('id', c.id);
+    }
   }
 
   const { error } = await db.from('users').delete().eq('id', userId);
@@ -636,7 +621,7 @@ async function removeMember(userId) {
   showToast('✅ Member removed successfully');
 }
 
-// ==================== CONTACT UPLOAD ====================
+// ==================== CONTACT UPLOAD - FIXED ====================
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -647,42 +632,59 @@ function parseCSVFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const text = e.target.result;
-    const lines = text.split('\n').filter(l => l.trim());
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    
     if (lines.length < 2) { 
-      showToast('CSV file is empty or invalid', true);
+      showToast('CSV file is empty', true);
       return;
     }
 
-    const header = lines[0].toLowerCase();
-    const delim = header.includes('\t') ? '\t' : ',';
-
-    const headers = lines[0].split(delim).map(h => h.trim().toLowerCase());
-    const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('contact'));
-    const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('tel'));
-    const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
-
-    if (nameIdx === -1 || phoneIdx === -1) {
-      showToast('CSV must have at least "Name" and "Phone" columns', true);
+    // Get headers from first line
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const nameIdx = headers.findIndex(h => h === 'name' || h === 'fullname' || h.includes('name'));
+    const phoneIdx = headers.findIndex(h => h === 'phone' || h === 'mobile' || h === 'tel' || h.includes('phone'));
+    const emailIdx = headers.findIndex(h => h === 'email' || h.includes('email'));
+    
+    if (nameIdx === -1) {
+      showToast('CSV must have a "Name" column', true);
+      return;
+    }
+    if (phoneIdx === -1) {
+      showToast('CSV must have a "Phone" column', true);
       return;
     }
 
     pendingUploadContacts = [];
+    
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(delim).map(c => c.trim());
-      if (cols[nameIdx] && cols[phoneIdx]) {
+      const cols = lines[i].split(',');
+      if (cols[nameIdx] && cols[nameIdx].trim() && cols[phoneIdx] && cols[phoneIdx].trim()) {
         pendingUploadContacts.push({
-          name: cols[nameIdx].replace(/^"|"$/g, ''),
-          phone: cols[phoneIdx].replace(/^"|"$/g, ''),
-          email: emailIdx >= 0 ? (cols[emailIdx] || '').replace(/^"|"$/g, '') : ''
+          name: cols[nameIdx].trim().replace(/^"|"$/g, ''),
+          phone: cols[phoneIdx].trim().replace(/^"|"$/g, ''),
+          email: emailIdx >= 0 && cols[emailIdx] ? cols[emailIdx].trim().replace(/^"|"$/g, '') : ''
         });
       }
     }
 
+    if (pendingUploadContacts.length === 0) {
+      showToast('No valid contacts found in CSV', true);
+      return;
+    }
+
+    // Show preview
     document.getElementById('uploadPreview').classList.remove('hidden');
     document.getElementById('previewCount').textContent = pendingUploadContacts.length;
-    document.getElementById('previewTableBody').innerHTML = pendingUploadContacts.slice(0, 10).map(c =>
+    
+    const previewBody = document.getElementById('previewTableBody');
+    previewBody.innerHTML = pendingUploadContacts.slice(0, 10).map(c =>
       `<tr><td class="py-1">${escapeHtml(c.name)}</td><td class="py-1">${escapeHtml(c.phone)}</td></tr>`
-    ).join('') + (pendingUploadContacts.length > 10 ? `<tr><td colspan="2" class="py-1 text-gray-400">... and ${pendingUploadContacts.length - 10} more</td></tr>` : '');
+    ).join('');
+    
+    if (pendingUploadContacts.length > 10) {
+      previewBody.innerHTML += `<tr><td colspan="2" class="py-1 text-gray-400">... and ${pendingUploadContacts.length - 10} more</td></td>`;
+    }
+    
     showToast(`Loaded ${pendingUploadContacts.length} contacts from CSV`);
   };
   reader.readAsText(file);
@@ -691,40 +693,58 @@ function parseCSVFile(file) {
 async function confirmUpload() {
   const users = await loadUsers();
   const members = users.filter(u => u.role === 'member');
-
-  if (members.length === 0) { 
-    showToast('No members available. Please add members first.', true);
-    return; 
+  
+  if (members.length === 0) {
+    showToast('No members found. Add members first.', true);
+    return;
   }
-  if (pendingUploadContacts.length === 0) { 
-    showToast('No contacts to upload.', true);
-    return; 
+  
+  if (!pendingUploadContacts.length) {
+    showToast('No contacts to upload. Load a CSV file first.', true);
+    return;
   }
-
-  let existingContacts = await loadContacts();
-
-  for (let idx = 0; idx < pendingUploadContacts.length; idx++) {
-    const c = pendingUploadContacts[idx];
-    const member = members[idx % members.length];
-    const { error } = await db.from('contacts').insert([{
-      name: c.name,
-      phone: c.phone,
-      email: c.email || '',
-      status: 'pending',
+  
+  showToast(`Uploading ${pendingUploadContacts.length} contacts...`);
+  
+  let successCount = 0;
+  let errorCount = 0;
+  
+  for (let i = 0; i < pendingUploadContacts.length; i++) {
+    const contact = pendingUploadContacts[i];
+    const member = members[i % members.length];
+    
+    const { error } = await db.from('contacts').insert({
+      name: contact.name,
+      phone: contact.phone,
+      email: contact.email || '',
       assigned_to: member.id,
+      status: 'pending',
       feedback: '',
       call_status: '',
-      call_date: ''
-    }]);
-    if (error) console.error('Insert error:', error);
+      call_date: null,
+      created_at: new Date().toISOString()
+    });
+    
+    if (error) {
+      console.error('Insert error:', error);
+      errorCount++;
+    } else {
+      successCount++;
+    }
   }
-
+  
+  if (errorCount > 0) {
+    showToast(`⚠️ Uploaded ${successCount} contacts, ${errorCount} failed`, true);
+  } else {
+    showToast(`✅ Successfully uploaded ${successCount} contacts to ${members.length} members!`);
+  }
+  
+  // Clear preview and reset
   pendingUploadContacts = [];
   document.getElementById('uploadPreview').classList.add('hidden');
   document.getElementById('csvFileInput').value = '';
-
-  refreshAdminDashboard();
-  showToast(`✅ Successfully distributed contacts to ${members.length} members!`);
+  
+  await refreshAdminDashboard();
 }
 
 async function redistributeContacts() {
@@ -749,7 +769,7 @@ async function redistributeContacts() {
       status: 'pending',
       feedback: '',
       call_status: '',
-      call_date: ''
+      call_date: null
     }).eq('id', contacts[idx].id);
   }
 
@@ -858,18 +878,7 @@ async function refreshMemberDashboard() {
   renderMemberContacts();
 }
 
-function renderMemberContacts() {
-  if (!currentUser) return;
-  const container = document.getElementById('memberContactsList');
-  const noMsg = document.getElementById('noMemberContacts');
-  
-  if (!container) return;
-
-  // This will be populated from refreshMemberDashboard which calls loadContacts
-  renderMemberContactsList();
-}
-
-async function renderMemberContactsList() {
+async function renderMemberContacts() {
   if (!currentUser) return;
   const contacts = await loadContacts();
   const search = document.getElementById('memberSearch')?.value?.toLowerCase() || '';
@@ -981,14 +990,6 @@ if (dropZone) {
 document.getElementById('loginPassword').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') handleLogin();
 });
-
-// ==================== ESCAPE HTML ====================
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
 // ==================== INITIALIZE ====================
 populateLoginDropdown();
