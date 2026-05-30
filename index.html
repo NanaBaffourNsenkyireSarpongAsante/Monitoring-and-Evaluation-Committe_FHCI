@@ -7,22 +7,17 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.css">
 <style>
-  * { font-family: 'Inter', sans-serif; }
+  * { font-family: system-ui, -apple-system, sans-serif; }
   body { background: #f0f4f8; }
-  .fade-in { animation: fadeIn 0.3s ease-in; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-  .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
-  .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
 </style>
 </head>
 <body class="min-h-screen">
 
 <!-- Login Screen -->
 <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md fade-in">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
     <div class="text-center mb-8">
       <div class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,15 +30,15 @@
     <div class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Select Your Account</label>
-        <select id="loginUser" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-          <option value="">Loading users...</option>
+        <select id="loginUser" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+          <option value="">-- Choose your name --</option>
         </select>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input type="password" id="loginPassword" placeholder="Enter password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        <input type="password" id="loginPassword" placeholder="Enter password" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
       </div>
-      <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+      <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">
         Sign In
       </button>
       <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
@@ -54,43 +49,34 @@
 <!-- Main App -->
 <div id="mainApp" class="hidden min-h-screen">
   <header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="font-bold text-gray-800">M&E Committee</h1>
-          <p class="text-xs text-gray-500" id="userRoleDisplay"></p>
-        </div>
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div>
+        <h1 class="font-bold text-gray-800">M&E Committee</h1>
+        <p class="text-xs text-gray-500" id="userRoleDisplay"></p>
       </div>
       <div class="flex items-center gap-3">
-        <span class="text-sm text-gray-600 hidden sm:inline" id="welcomeName"></span>
-        <button onclick="handleLogout()" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg">Logout</button>
+        <span class="text-sm text-gray-600" id="welcomeName"></span>
+        <button onclick="handleLogout()" class="bg-gray-100 px-3 py-2 rounded-lg">Logout</button>
       </div>
     </div>
   </header>
 
   <!-- Admin Dashboard -->
-  <div id="adminDashboard" class="hidden max-w-7xl mx-auto px-4 py-6 fade-in">
+  <div id="adminDashboard" class="hidden max-w-7xl mx-auto px-4 py-6">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl p-4 shadow-sm"><div class="text-2xl font-bold text-indigo-600" id="statMembers">0</div><div class="text-sm text-gray-500">Members</div></div>
-      <div class="bg-white rounded-xl p-4 shadow-sm"><div class="text-2xl font-bold text-blue-600" id="statContacts">0</div><div class="text-sm text-gray-500">Contacts</div></div>
-      <div class="bg-white rounded-xl p-4 shadow-sm"><div class="text-2xl font-bold text-green-600" id="statCalled">0</div><div class="text-sm text-gray-500">Calls Made</div></div>
-      <div class="bg-white rounded-xl p-4 shadow-sm"><div class="text-2xl font-bold text-orange-600" id="statPending">0</div><div class="text-sm text-gray-500">Pending</div></div>
+      <div class="bg-white rounded-xl p-4"><div class="text-2xl font-bold text-indigo-600" id="statMembers">0</div><div class="text-sm text-gray-500">Members</div></div>
+      <div class="bg-white rounded-xl p-4"><div class="text-2xl font-bold text-blue-600" id="statContacts">0</div><div class="text-sm text-gray-500">Contacts</div></div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm mb-6">
+    <div class="bg-white rounded-xl shadow-sm">
       <div class="flex border-b">
         <button onclick="switchTab('members')" id="tabMembers" class="px-6 py-3 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600">👥 Members</button>
-        <button onclick="switchTab('upload')" id="tabUpload" class="px-6 py-3 text-sm font-medium text-gray-500">📤 Upload Contacts</button>
+        <button onclick="switchTab('upload')" id="tabUpload" class="px-6 py-3 text-sm font-medium text-gray-500">📤 Upload</button>
         <button onclick="switchTab('reports')" id="tabReports" class="px-6 py-3 text-sm font-medium text-gray-500">📊 Reports</button>
       </div>
 
       <div id="panelMembers" class="p-4">
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between mb-4">
           <h3 class="font-semibold">Committee Members</h3>
           <button onclick="openAddMemberModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">+ Add Member</button>
         </div>
@@ -105,7 +91,7 @@
       </div>
 
       <div id="panelReports" class="hidden p-4">
-        <button onclick="downloadReport()" class="bg-green-600 text-white px-6 py-3 rounded-lg">📥 Download Excel Report</button>
+        <button onclick="downloadReport()" class="bg-green-600 text-white px-6 py-3 rounded-lg">📥 Download Report</button>
       </div>
     </div>
   </div>
@@ -136,54 +122,34 @@
 </div>
 
 <script>
-// ==================== SUPABASE SETUP ====================
-const SUPABASE_URL = 'https://igugnoffelotyahwat.t.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase configuration
+const supabaseUrl = 'https://igugnoffelotyahwat.t.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlndWdubm9xZmVsb3R5aGF3dGF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDYyMDYsImV4cCI6MjA5NTcyMjIwNn0._vh0a8dJHNVNqF-wrVq7ULSz6eQnt1zU4WOyDcnYwW8';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 let currentUser = null;
 
-// ==================== DATABASE FUNCTIONS ====================
+// Load users into dropdown
 async function loadUsers() {
-  const { data, error } = await supabase.from('users').select('*');
-  if (error) { console.error('Error:', error); return []; }
+  const { data, error } = await supabaseClient.from('users').select('*');
+  if (error) {
+    console.error('Error loading users:', error);
+    return [];
+  }
   return data || [];
 }
 
-async function loadContacts() {
-  const { data, error } = await supabase.from('contacts').select('*');
-  if (error) { console.error('Error:', error); return []; }
-  return data || [];
-}
-
-async function saveUser(user) {
-  const { data, error } = await supabase.from('users').insert([user]).select();
-  if (error) throw error;
-  return data[0];
-}
-
-async function deleteUser(userId) {
-  const { error } = await supabase.from('users').delete().eq('id', userId);
-  if (error) throw error;
-}
-
-async function saveContact(contact) {
-  const { error } = await supabase.from('contacts').insert([contact]);
-  if (error) throw error;
-}
-
-// ==================== UI FUNCTIONS ====================
 async function loadLoginDropdown() {
   const users = await loadUsers();
   const select = document.getElementById('loginUser');
   select.innerHTML = '<option value="">-- Choose your name --</option>';
-  users.forEach(u => {
-    select.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
+  users.forEach(user => {
+    select.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
   });
 }
 
-async function handleLogin() {
+// Login handler
+window.handleLogin = async function() {
   const userId = document.getElementById('loginUser').value;
   const password = document.getElementById('loginPassword').value;
   const errorEl = document.getElementById('loginError');
@@ -219,25 +185,23 @@ async function handleLogin() {
     document.getElementById('memberDashboard').classList.remove('hidden');
     await refreshMemberDashboard();
   }
-}
+};
 
-function handleLogout() {
+window.handleLogout = function() {
   currentUser = null;
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
   loadLoginDropdown();
-}
+};
 
 async function refreshAdminDashboard() {
   const users = await loadUsers();
   const members = users.filter(u => u.role === 'member');
   document.getElementById('statMembers').textContent = members.length;
   
-  const contacts = await loadContacts();
-  document.getElementById('statContacts').textContent = contacts.length;
-  document.getElementById('statCalled').textContent = contacts.filter(c => c.status === 'completed').length;
-  document.getElementById('statPending').textContent = contacts.filter(c => c.status === 'pending').length;
+  const { data: contacts } = await supabaseClient.from('contacts').select('*');
+  document.getElementById('statContacts').textContent = contacts?.length || 0;
   
   await renderMembersList();
 }
@@ -246,30 +210,30 @@ async function renderMembersList() {
   const users = await loadUsers();
   const container = document.getElementById('membersList');
   
-  container.innerHTML = users.map(u => `
+  container.innerHTML = users.map(user => `
     <div class="flex justify-between items-center bg-gray-50 rounded-lg p-4">
       <div>
-        <p class="font-semibold">${u.name}</p>
-        <p class="text-xs text-gray-500">${u.email || 'No email'} · ${u.role}</p>
+        <p class="font-semibold">${user.name}</p>
+        <p class="text-xs text-gray-500">${user.email || 'No email'} · ${user.role}</p>
       </div>
-      ${u.role !== 'admin' ? `<button onclick="removeMember('${u.id}')" class="text-red-500 text-sm">Remove</button>` : '<span class="text-xs text-gray-400">Admin</span>'}
+      ${user.role !== 'admin' ? `<button onclick="removeMember('${user.id}')" class="text-red-500 text-sm">Remove</button>` : '<span class="text-xs text-gray-400">Admin</span>'}
     </div>
   `).join('');
 }
 
-function openAddMemberModal() {
+window.openAddMemberModal = function() {
   document.getElementById('addMemberModal').classList.remove('hidden');
   document.getElementById('memberName').value = '';
   document.getElementById('memberEmail').value = '';
   document.getElementById('memberPhone').value = '';
   document.getElementById('memberPassword').value = '';
-}
+};
 
-function closeAddMemberModal() {
+window.closeAddMemberModal = function() {
   document.getElementById('addMemberModal').classList.add('hidden');
-}
+};
 
-async function addMember() {
+window.addMember = async function() {
   const name = document.getElementById('memberName').value.trim();
   const email = document.getElementById('memberEmail').value.trim();
   const phone = document.getElementById('memberPhone').value.trim();
@@ -281,43 +245,46 @@ async function addMember() {
     return;
   }
 
-  await saveUser({ name, email, phone, role, password });
+  const { error } = await supabaseClient.from('users').insert([{ name, email, phone, role, password }]);
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
   closeAddMemberModal();
   await refreshAdminDashboard();
   await loadLoginDropdown();
   alert(`✅ Member "${name}" added!`);
-}
+};
 
-async function removeMember(userId) {
+window.removeMember = async function(userId) {
   if (!confirm('Remove this member?')) return;
-  await deleteUser(userId);
+  await supabaseClient.from('users').delete().eq('id', userId);
   await refreshAdminDashboard();
   await loadLoginDropdown();
-}
+};
 
 async function refreshMemberDashboard() {
   if (!currentUser) return;
-  const contacts = await loadContacts();
-  const myContacts = contacts.filter(c => c.assigned_to === currentUser.id);
+  const { data: contacts } = await supabaseClient.from('contacts').select('*').eq('assigned_to', currentUser.id);
   
   const container = document.getElementById('memberContactsList');
-  if (myContacts.length === 0) {
+  if (!contacts || contacts.length === 0) {
     container.innerHTML = '<div class="p-8 text-center text-gray-400">No contacts assigned yet</div>';
     return;
   }
   
-  container.innerHTML = myContacts.map(c => `
+  container.innerHTML = contacts.map(c => `
     <div class="p-4 border-b">
       <p class="font-semibold">${c.name}</p>
       <p class="text-sm text-gray-500">📞 ${c.phone}</p>
       <p class="text-sm mt-2">Status: ${c.status === 'completed' ? '✅ Completed' : '⏳ Pending'}</p>
-      ${c.feedback ? `<p class="text-sm text-gray-600 mt-1">"${c.feedback}"</p>` : ''}
       <a href="tel:${c.phone}" class="inline-block mt-2 bg-green-600 text-white px-4 py-1 rounded-lg text-sm">Call</a>
     </div>
   `).join('');
 }
 
-async function uploadContacts() {
+window.uploadContacts = async function() {
   const file = document.getElementById('csvFile').files[0];
   if (!file) {
     alert('Please select a CSV file');
@@ -341,53 +308,55 @@ async function uploadContacts() {
       const cols = lines[i].split(',');
       if (cols.length >= 2 && cols[0].trim()) {
         const member = members[i % members.length];
-        await saveContact({
+        await supabaseClient.from('contacts').insert([{
           name: cols[0].trim(),
           phone: cols[1].trim(),
           email: cols[2]?.trim() || '',
           assigned_to: member.id,
           status: 'pending'
-        });
+        }]);
       }
     }
     
-    alert(`Contacts uploaded and distributed to ${members.length} members!`);
+    alert(`Contacts uploaded!`);
     await refreshAdminDashboard();
   };
   reader.readAsText(file);
-}
+};
 
-function switchTab(tab) {
+window.switchTab = function(tab) {
   document.getElementById('panelMembers').classList.add('hidden');
   document.getElementById('panelUpload').classList.add('hidden');
   document.getElementById('panelReports').classList.add('hidden');
-  
   document.getElementById(`panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
   
   document.getElementById('tabMembers').classList.remove('text-indigo-600', 'border-indigo-600');
   document.getElementById('tabUpload').classList.remove('text-indigo-600', 'border-indigo-600');
   document.getElementById('tabReports').classList.remove('text-indigo-600', 'border-indigo-600');
+  document.getElementById('tabMembers').classList.add('text-gray-500');
+  document.getElementById('tabUpload').classList.add('text-gray-500');
+  document.getElementById('tabReports').classList.add('text-gray-500');
   
   document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
-}
+};
 
-async function downloadReport() {
+window.downloadReport = async function() {
   const users = await loadUsers();
-  const contacts = await loadContacts();
+  const { data: contacts } = await supabaseClient.from('contacts').select('*');
   
-  const data = [['Name', 'Phone', 'Email', 'Assigned To', 'Status', 'Feedback']];
-  for (const c of contacts) {
+  const reportData = [['Name', 'Phone', 'Email', 'Assigned To', 'Status']];
+  for (const c of contacts || []) {
     const assigned = users.find(u => u.id === c.assigned_to);
-    data.push([c.name, c.phone, c.email || '', assigned?.name || 'Unknown', c.status, c.feedback || '']);
+    reportData.push([c.name, c.phone, c.email || '', assigned?.name || 'Unknown', c.status]);
   }
   
-  const ws = XLSX.utils.aoa_to_sheet(data);
+  const ws = XLSX.utils.aoa_to_sheet(reportData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
   XLSX.writeFile(wb, `ME_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
+};
 
-// ==================== INIT ====================
+// Initialize
 loadLoginDropdown();
 </script>
 </body>
