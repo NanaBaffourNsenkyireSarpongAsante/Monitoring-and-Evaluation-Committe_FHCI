@@ -55,7 +55,7 @@
       <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
     </div>
     <div class="mt-6 pt-6 border-t border-gray-200 text-center">
-      <p class="text-xs text-gray-400">First time? Ask your admin for account setup</p>
+      <p class="text-xs text-gray-400">Contact your admin for account setup</p>
     </div>
   </div>
 </div>
@@ -191,9 +191,9 @@
             <h4 class="font-semibold text-gray-800 mb-2">Preview (<span id="previewCount"></span> contacts)</h4>
             <div class="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
               <table class="w-full text-sm">
-                <thead><tr class="text-left text-gray-600"><th class="pb-2">Name</th><th class="pb-2">Phone</th></tr></thead>
+                <thead><tr class="text-left text-gray-600"><th class="pb-2">Name</th><th class="pb-2">Phone</th> </tr></thead>
                 <tbody id="previewTableBody"></tbody>
-              </table>
+               </table>
             </div>
             <button onclick="confirmUpload()" class="mt-3 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
               ✓ Distribute & Upload
@@ -359,31 +359,79 @@
 </div>
 
 <script>
-// ==================== DATA MANAGEMENT ====================
+// ==================== DATA MANAGEMENT (FIXED - NO DEFAULT MEMBERS) ====================
 const DB = {
   get(key) {
-    try { return JSON.parse(localStorage.getItem('church_me_' + key)) || null; } catch { return null; }
+    try { 
+      const data = localStorage.getItem('church_me_' + key);
+      return data ? JSON.parse(data) : null;
+    } catch(e) { 
+      return null; 
+    }
   },
-  set(key, val) { localStorage.setItem('church_me_' + key, JSON.stringify(val)); },
+  set(key, val) { 
+    localStorage.setItem('church_me_' + key, JSON.stringify(val)); 
+  },
   init() {
-    if (!this.get('initialized')) {
-      const defaultUsers = [
-        { id: 'u1', name: 'Admin', email: 'admin@church.org', phone: '', role: 'admin', password: 'admin123' },
-        { id: 'u2', name: 'Member 1', email: 'm1@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u3', name: 'Member 2', email: 'm2@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u4', name: 'Member 3', email: 'm3@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u5', name: 'Member 4', email: 'm4@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u6', name: 'Member 5', email: 'm5@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u7', name: 'Member 6', email: 'm6@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u8', name: 'Member 7', email: 'm7@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u9', name: 'Member 8', email: 'm8@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u10', name: 'Member 9', email: 'm9@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u11', name: 'Member 10', email: 'm10@church.org', phone: '', role: 'member', password: '1234' },
-        { id: 'u12', name: 'Member 11', email: 'm11@church.org', phone: '', role: 'member', password: '1234' }
+    // Get existing users
+    let users = this.get('users');
+    
+    // FIRST TIME SETUP - ONLY create Admin, NO default members
+    if (!users || users.length === 0) {
+      users = [
+        { 
+          id: 'admin1', 
+          name: 'Admin', 
+          email: 'admin@church.org', 
+          phone: '', 
+          role: 'admin', 
+          password: 'admin123' 
+        }
       ];
-      this.set('users', defaultUsers);
+      this.set('users', users);
       this.set('contacts', []);
-      this.set('initialized', true);
+      console.log('First time setup: Created Admin only');
+    }
+    
+    // AUTO-CLEAN: Remove any default "Member X" users if they exist (for existing installations)
+    const currentUsers = this.get('users') || [];
+    const filteredUsers = currentUsers.filter(u => {
+      // Remove default members (Member 1, Member 2, etc.)
+      const isDefaultMember = u.name && u.name.match(/^Member \d+$/);
+      const isDefaultEmail = u.email && u.email.match(/^m\d+@church\.org$/);
+      const isDefaultId = u.id && (u.id === 'u2' || u.id === 'u3' || u.id === 'u4' || u.id === 'u5' || 
+                                     u.id === 'u6' || u.id === 'u7' || u.id === 'u8' || u.id === 'u9' || 
+                                     u.id === 'u10' || u.id === 'u11' || u.id === 'u12');
+      
+      if (isDefaultMember || isDefaultEmail || isDefaultId) {
+        console.log('Auto-removing default member:', u.name);
+        return false;
+      }
+      return true;
+    });
+    
+    // Save filtered users if any were removed
+    if (filteredUsers.length !== currentUsers.length) {
+      this.set('users', filteredUsers);
+      console.log(`Cleaned ${currentUsers.length - filteredUsers.length} default members`);
+    }
+    
+    // Ensure there's always at least one admin
+    const finalUsers = this.get('users') || [];
+    const hasAdmin = finalUsers.some(u => u.role === 'admin');
+    if (!hasAdmin && finalUsers.length > 0) {
+      finalUsers[0].role = 'admin';
+      this.set('users', finalUsers);
+      console.log('Promoted first user to admin');
+    }
+    
+    // Also clean up any contacts assigned to removed members
+    const contacts = this.get('contacts') || [];
+    const validUserIds = (this.get('users') || []).map(u => u.id);
+    const cleanContacts = contacts.filter(c => validUserIds.includes(c.assignedTo));
+    if (cleanContacts.length !== contacts.length) {
+      this.set('contacts', cleanContacts);
+      console.log(`Cleaned ${contacts.length - cleanContacts.length} contacts assigned to removed members`);
     }
   }
 };
@@ -394,16 +442,23 @@ let pendingUploadContacts = [];
 // ==================== INITIALIZATION ====================
 DB.init();
 
-// ==================== LOGIN ====================
-function populateLoginDropdown() {
+// Refresh login dropdown function
+function refreshLoginDropdown() {
   const users = DB.get('users') || [];
   const select = document.getElementById('loginUser');
-  select.innerHTML = '<option value="">-- Choose your name --</option>';
-  users.forEach(u => {
-    select.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
-  });
+  if (select) {
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">-- Choose your name --</option>';
+    users.forEach(u => {
+      select.innerHTML += `<option value="${u.id}">${u.name} (${u.role === 'admin' ? 'Admin' : 'Member'})</option>`;
+    });
+    if (currentValue && users.find(u => u.id === currentValue)) {
+      select.value = currentValue;
+    }
+  }
 }
 
+// ==================== LOGIN ====================
 function handleLogin() {
   const userId = document.getElementById('loginUser').value;
   const password = document.getElementById('loginPassword').value;
@@ -444,7 +499,7 @@ function handleLogout() {
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
-  populateLoginDropdown();
+  refreshLoginDropdown();
 }
 
 // ==================== ADMIN FUNCTIONS ====================
@@ -454,7 +509,7 @@ function refreshAdminDashboard() {
   const completed = contacts.filter(c => c.status === 'completed').length;
   const pending = contacts.filter(c => c.status === 'pending').length;
 
-  document.getElementById('statMembers').textContent = users.length;
+  document.getElementById('statMembers').textContent = users.filter(u => u.role === 'member').length;
   document.getElementById('statContacts').textContent = contacts.length;
   document.getElementById('statCalled').textContent = completed;
   document.getElementById('statPending').textContent = pending;
@@ -513,7 +568,7 @@ function renderAdminContacts() {
       <td class="px-4 py-3 text-gray-600">${assignedUser ? assignedUser.name : 'Unassigned'}</td>
       <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${c.status}</span></td>
       <td class="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">${c.feedback || '-'}</td>
-    </tr>`;
+     </tr>`;
   }).join('');
 }
 
@@ -534,14 +589,14 @@ function renderMembersList() {
         </div>
         <div>
           <p class="font-semibold text-gray-800">${u.name}</p>
-          <p class="text-xs text-gray-500">${u.email} · ${u.role}</p>
+          <p class="text-xs text-gray-500">${u.email || 'No email'} · ${u.role === 'admin' ? 'Admin' : 'Member'}</p>
         </div>
       </div>
       <div class="flex items-center gap-4">
         <div class="text-right hidden sm:block">
           <p class="text-sm text-gray-600"><span class="font-semibold text-green-600">${completed}</span> done · <span class="font-semibold text-orange-600">${pending}</span> pending</p>
         </div>
-        ${u.id !== 'u1' ? `<button onclick="removeMember('${u.id}')" class="text-red-500 hover:text-red-700 text-sm">Remove</button>` : '<span class="text-xs text-gray-400">Default</span>'}
+        ${u.role !== 'admin' ? `<button onclick="removeMember('${u.id}')" class="text-red-500 hover:text-red-700 text-sm">Remove</button>` : '<span class="text-xs text-gray-400">Admin</span>'}
       </div>
     </div>`;
   }).join('');
@@ -575,6 +630,8 @@ function addNewMember() {
 
   closeAddMemberModal();
   refreshAdminDashboard();
+  refreshLoginDropdown();
+  alert(`✅ Member "${name}" added successfully!`);
 }
 
 function removeMember(userId) {
@@ -592,6 +649,8 @@ function removeMember(userId) {
   DB.set('users', users);
   DB.set('contacts', contacts);
   refreshAdminDashboard();
+  refreshLoginDropdown();
+  alert('✅ Member removed successfully');
 }
 
 // ==================== CONTACT UPLOAD ====================
@@ -608,7 +667,6 @@ function parseCSVFile(file) {
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length < 2) { alert('CSV file is empty or invalid'); return; }
 
-    // Detect delimiter
     const header = lines[0].toLowerCase();
     const delim = header.includes('\t') ? '\t' : ',';
 
@@ -634,7 +692,6 @@ function parseCSVFile(file) {
       }
     }
 
-    // Show preview
     document.getElementById('uploadPreview').classList.remove('hidden');
     document.getElementById('previewCount').textContent = pendingUploadContacts.length;
     document.getElementById('previewTableBody').innerHTML = pendingUploadContacts.slice(0, 10).map(c =>
@@ -651,7 +708,6 @@ function confirmUpload() {
   if (members.length === 0) { alert('No members available. Please add members first.'); return; }
   if (pendingUploadContacts.length === 0) { alert('No contacts to upload.'); return; }
 
-  // Add to existing contacts
   const existingContacts = DB.get('contacts') || [];
 
   pendingUploadContacts.forEach((c, idx) => {
@@ -675,7 +731,7 @@ function confirmUpload() {
   document.getElementById('csvFileInput').value = '';
 
   refreshAdminDashboard();
-  alert(`✅ Successfully distributed ${existingContacts.length - (DB.get('contacts')?.length || 0) || pendingUploadContacts.length} contacts to ${members.length} members!`);
+  alert(`✅ Successfully distributed ${pendingUploadContacts.length || 'contacts'} to ${members.length} members!`);
 }
 
 function redistributeContacts() {
@@ -687,7 +743,6 @@ function redistributeContacts() {
   let contacts = DB.get('contacts') || [];
   if (contacts.length === 0) { alert('No contacts to redistribute.'); return; }
 
-  // Reset status and redistribute
   contacts = contacts.map((c, idx) => {
     const member = members[idx % members.length];
     return {
@@ -733,7 +788,6 @@ function compileAndDownloadReport() {
   const users = DB.get('users') || [];
   const contacts = DB.get('contacts') || [];
 
-  // Summary sheet
   const summaryData = [
     ['Church M&E Committee - Contact Report'],
     ['Generated: ' + new Date().toLocaleString()],
@@ -759,7 +813,6 @@ function compileAndDownloadReport() {
     ]);
   });
 
-  // Detailed contacts sheet
   const detailData = [
     ['Contact Name', 'Phone', 'Email', 'Assigned To', 'Status', 'Call Result', 'Feedback', 'Date']
   ];
@@ -778,7 +831,6 @@ function compileAndDownloadReport() {
     ]);
   });
 
-  // Create workbook
   const wb = XLSX.utils.book_new();
   const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
   const ws2 = XLSX.utils.aoa_to_sheet(detailData);
@@ -786,7 +838,6 @@ function compileAndDownloadReport() {
   XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
   XLSX.utils.book_append_sheet(wb, ws2, 'Detailed Contacts');
 
-  // Download
   const fileName = `ME_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
@@ -890,6 +941,7 @@ function saveFeedback() {
   DB.set('contacts', contacts);
   closeFeedbackModal();
   refreshMemberDashboard();
+  if (currentUser && currentUser.role === 'admin') refreshAdminDashboard();
 }
 
 // ==================== DRAG & DROP ====================
@@ -910,13 +962,15 @@ if (dropZone) {
 }
 
 // ==================== ENTER KEY LOGIN ====================
-document.getElementById('loginPassword').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') handleLogin();
-});
+const loginPassword = document.getElementById('loginPassword');
+if (loginPassword) {
+  loginPassword.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+}
 
 // ==================== INITIALIZE ====================
-populateLoginDropdown();
+refreshLoginDropdown();
 </script>
 </body>
 </html>
-
